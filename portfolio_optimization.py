@@ -423,6 +423,9 @@ class SmartRebalancer:
     def execute_smart_rebalance(self, target_weights, 
                               symbols):
         """执行智能调仓"""
+        # 首先尝试获取最新的市场数据
+        self._ensure_current_data_available()
+        
         if not hasattr(self.algorithm, 'current_slice') or self.algorithm.current_slice is None:
             self.algorithm.Debug("No current data slice available for rebalancing")
             return {}
@@ -430,6 +433,11 @@ class SmartRebalancer:
         try:
             current_holdings = self._get_current_holdings()
             target_holdings = self._calculate_target_holdings(target_weights, symbols)
+            
+            if not target_holdings:
+                self.algorithm.Debug("No valid target holdings calculated, skipping rebalance")
+                return {}
+            
             trades = self._generate_trade_instructions(current_holdings, target_holdings)
             executed_trades = self._execute_trades(trades)
             self._log_rebalance_summary(executed_trades)
@@ -439,6 +447,19 @@ class SmartRebalancer:
         except Exception as e:
             self.algorithm.Debug(f"Error in smart rebalancing: {e}")
             return {}
+    
+    def _ensure_current_data_available(self):
+        """确保有当前数据可用"""
+        try:
+            # 尝试从Portfolio获取最新的持仓价格作为fallback
+            if not hasattr(self.algorithm, 'current_slice') or self.algorithm.current_slice is None:
+                self.algorithm.Debug("Attempting to get current data from portfolio holdings")
+                
+                # 这里可以添加从其他数据源获取当前价格的逻辑
+                # 例如：使用History API获取最新数据
+                
+        except Exception as e:
+            self.algorithm.Debug(f"Error ensuring current data: {e}")
     
     def _get_current_holdings(self):
         """获取当前持仓状态"""
@@ -463,16 +484,27 @@ class SmartRebalancer:
         target_holdings = {}
         total_value = self.algorithm.Portfolio.TotalPortfolioValue
         
+        # 检查是否有有效的数据slice
+        if not hasattr(self.algorithm, 'current_slice') or self.algorithm.current_slice is None:
+            self.algorithm.Debug("No current data slice available for target holdings calculation")
+            return target_holdings
+        
         for i, symbol in enumerate(symbols):
             if target_weights[i] <= 0.001:
                 continue
             
             symbol_str = str(symbol)
             
+            # 检查symbol是否在current_slice中存在
             if not self.algorithm.current_slice.ContainsKey(symbol_str):
+                self.algorithm.Debug(f"Symbol {symbol_str} not found in current data slice")
                 continue
             
-            current_price = self.algorithm.current_slice[symbol_str].Price
+            # 安全地获取价格数据
+            current_price = self._get_current_price(symbol, symbol_str)
+            if current_price is None or current_price <= 0:
+                continue
+                
             target_value = target_weights[i] * total_value
             target_quantity = int(target_value / current_price)
             
@@ -485,6 +517,48 @@ class SmartRebalancer:
                 }
         
         return target_holdings
+    
+    def _get_current_price(self, symbol, symbol_str):
+        """获取当前价格，支持多种数据源"""
+        try:
+            # 方法1：从current_slice获取
+            if hasattr(self.algorithm, 'current_slice') and self.algorithm.current_slice is not None:
+                if self.algorithm.current_slice.ContainsKey(symbol_str):
+                    symbol_data = self.algorithm.current_slice[symbol_str]
+                    if symbol_data is not None and symbol_data.Price > 0:
+                        return symbol_data.Price
+            
+            # 方法2：从Portfolio持仓获取
+            if self.algorithm.Portfolio.ContainsKey(symbol):
+                holding = self.algorithm.Portfolio[symbol]
+                if holding.Invested and holding.Price > 0:
+                    self.algorithm.Debug(f"Using portfolio price for {symbol_str}: {holding.Price}")
+                    return holding.Price
+            
+            # 方法3：使用Securities获取
+            if symbol in self.algorithm.Securities:
+                security = self.algorithm.Securities[symbol]
+                if security.Price > 0:
+                    self.algorithm.Debug(f"Using security price for {symbol_str}: {security.Price}")
+                    return security.Price
+            
+            # 方法4：获取最新历史数据
+            try:
+                history = self.algorithm.History(symbol, 1, Resolution.Daily)
+                if len(list(history)) > 0:
+                    latest_bar = list(history)[-1]
+                    if latest_bar.Close > 0:
+                        self.algorithm.Debug(f"Using history price for {symbol_str}: {latest_bar.Close}")
+                        return latest_bar.Close
+            except:
+                pass
+            
+            self.algorithm.Debug(f"No valid price found for {symbol_str}")
+            return None
+            
+        except Exception as e:
+            self.algorithm.Debug(f"Error getting current price for {symbol_str}: {e}")
+            return None
     
     def _generate_trade_instructions(self, current_holdings, 
                                    target_holdings):
