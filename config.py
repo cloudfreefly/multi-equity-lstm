@@ -63,7 +63,7 @@ class AlgorithmConfig:
     # 训练控制配置
     TRAINING_CONFIG = {
         'enable_retraining': True,     # 是否启用重新训练
-        'retraining_frequency': 'monthly',  # 重新训练频率：'monthly', 'weekly', 'quarterly'
+        'retraining_frequency': 'weekly',  # 重新训练频率：'monthly', 'weekly', 'quarterly'
         'max_training_time': 480,      # 最大训练时间（秒）
         'memory_cleanup_interval': 5,  # 内存清理间隔
         'model_validation_ratio': 0.2,  # 验证集比例

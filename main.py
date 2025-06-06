@@ -65,9 +65,9 @@ class MultiHorizonTradingAlgorithm(QCAlgorithm):
             'daily_returns': []
         }
         
-        # 调度设置：每周执行调仓（提高频率以便观察）
+        # 调度设置：每日执行调仓
         self.Schedule.On(
-            self.DateRules.WeekStart("SPY"), 
+            self.DateRules.EveryDay("SPY"), 
             self.TimeRules.AfterMarketOpen("SPY"), 
             self.Rebalance
         )
@@ -510,13 +510,15 @@ class MultiHorizonTradingAlgorithm(QCAlgorithm):
         current_value = self.Portfolio.TotalPortfolioValue
         self.Debug(f"Pre-rebalance Portfolio Value: ${current_value:,.2f}")
         
-        # 检查是否需要重新训练
+        # 检查是否需要重新训练（每日调仓模式下控制训练频率）
         if self._should_retrain():
-            self.Debug("Retraining models...")
+            self.Debug(f"Retraining models... (Day: {self.Time.strftime('%A')})")
             training_success = self._perform_training()
             
             if not training_success:
                 self.Debug("Training failed, proceeding with fallback strategy")
+        else:
+            self.Debug(f"Using existing models (Day: {self.Time.strftime('%A')})")
         
         # 执行调仓
         self._perform_rebalancing()
@@ -551,12 +553,8 @@ class MultiHorizonTradingAlgorithm(QCAlgorithm):
         self.Debug(f"Available tradable symbols: {len(tradable_symbols)}")
         self.Debug(f"Tradable symbols: {tradable_symbols}")
         
-        # 检查下一个调仓日期
-        if self.Time.weekday() == 0:  # 周一
-            self.Debug("⭐ This is a rebalance day (Monday)")
-        else:
-            next_monday = self.Time + timedelta(days=(7 - self.Time.weekday()))
-            self.Debug(f"Next rebalance day: {next_monday.strftime('%Y-%m-%d')}")
+        # 每日调仓模式
+        self.Debug("⭐ Daily rebalancing mode - Every trading day is a rebalance day")
         
         # 检查模型状态
         if hasattr(self, 'model_trainer') and hasattr(self.model_trainer, 'models'):
