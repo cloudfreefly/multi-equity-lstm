@@ -65,11 +65,18 @@ class MultiHorizonTradingAlgorithm(QCAlgorithm):
             'daily_returns': []
         }
         
-        # 调度设置：每月月初执行调仓
+        # 调度设置：每周执行调仓（提高频率以便观察）
         self.Schedule.On(
-            self.DateRules.MonthStart("SPY"), 
+            self.DateRules.WeekStart("SPY"), 
             self.TimeRules.AfterMarketOpen("SPY"), 
             self.Rebalance
+        )
+        
+        # 调试：添加每日检查，确保我们能看到调仓日志
+        self.Schedule.On(
+            self.DateRules.EveryDay("SPY"),
+            self.TimeRules.AfterMarketOpen("SPY", 5),  # 开盘5分钟后
+            self._daily_rebalance_check
         )
         
         self.Debug("Multi-horizon trading algorithm initialized successfully")
@@ -529,3 +536,31 @@ class MultiHorizonTradingAlgorithm(QCAlgorithm):
         if current_value > 0:
             value_change = (post_value - current_value) / current_value
             self.Debug(f"Portfolio value change during rebalance: {value_change:.4f} ({value_change*100:.2f}%)")
+    
+    def _daily_rebalance_check(self):
+        """每日检查调仓状态"""
+        if self.IsWarmingUp:
+            return
+        
+        # 记录调仓状态
+        rebalance_count = self.performance_metrics.get('rebalance_count', 0)
+        tradable_symbols = self.model_trainer.get_tradable_symbols() if hasattr(self, 'model_trainer') else []
+        
+        self.Debug(f"=== Daily Rebalance Check at {self.Time} ===")
+        self.Debug(f"Total rebalances executed: {rebalance_count}")
+        self.Debug(f"Available tradable symbols: {len(tradable_symbols)}")
+        self.Debug(f"Tradable symbols: {tradable_symbols}")
+        
+        # 检查下一个调仓日期
+        if self.Time.weekday() == 0:  # 周一
+            self.Debug("⭐ This is a rebalance day (Monday)")
+        else:
+            next_monday = self.Time + timedelta(days=(7 - self.Time.weekday()))
+            self.Debug(f"Next rebalance day: {next_monday.strftime('%Y-%m-%d')}")
+        
+        # 检查模型状态
+        if hasattr(self, 'model_trainer') and hasattr(self.model_trainer, 'models'):
+            models = self.model_trainer.get_trained_models()
+            self.Debug(f"Trained models available: {len(models) if models else 0}")
+        else:
+            self.Debug("No model trainer or models available")

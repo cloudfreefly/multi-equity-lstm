@@ -69,7 +69,7 @@ class AlgorithmConfig:
         'model_validation_ratio': 0.2,  # 验证集比例
         'early_stopping_delta': 0.001,  # 早停最小改善
         'mc_dropout_samples': 10,     # Monte Carlo Dropout采样数
-        'fallback_strategy': 'equal_weights'  # 无模型时的备用策略：'equal_weights', 'momentum', 'skip'
+        'fallback_strategy': 'momentum'  # 无模型时的备用策略：'equal_weights', 'momentum', 'skip'
     }
     
     # 预测配置
