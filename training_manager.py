@@ -105,6 +105,9 @@ class TrainingManager:
 
         self._log_training_summary(training_start_time, successful_training, failed_training)
         
+        # 更新算法的模型和scaler引用
+        self.update_algorithm_models()
+        
         # 内存清理
         gc.collect()
         
@@ -268,4 +271,9 @@ class TrainingManager:
         self.algorithm.lstm_models = self.lstm_models
         self.algorithm.scalers = self.scalers
         self.algorithm.effective_lookbacks = self.effective_lookbacks
-        self.algorithm.tradable_symbols = self.tradable_symbols 
+        self.algorithm.tradable_symbols = self.tradable_symbols
+        
+        # 重要：同步scaler到data_processor
+        self.algorithm.data_processor.scalers = self.scalers
+        self.algorithm.Debug(f"Updated algorithm with {len(self.scalers)} scalers")
+        self.algorithm.Debug(f"Scaler symbols: {list(self.scalers.keys())}") 

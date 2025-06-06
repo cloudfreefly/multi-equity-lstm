@@ -320,6 +320,9 @@ class ModelTrainer:
         self.data_processor = DataProcessor(algorithm_instance)
         self.multi_horizon_model = MultiHorizonModel(algorithm_instance)
         
+        # 重要：添加scaler管理
+        self.scalers = {}
+        
     def train_all_models(self):
         """训练所有股票的模型"""
         training_start_time = time.time()
@@ -365,6 +368,9 @@ class ModelTrainer:
         self.algorithm.Debug(f"  Successful: {len(successful_symbols)}")
         self.algorithm.Debug(f"  Failed: {len(failed_symbols)}")
         self.algorithm.Debug(f"  Success rate: {len(successful_symbols)/(len(successful_symbols)+len(failed_symbols))*100:.1f}%")
+        
+        # 重要：收集并同步scalers到算法和data_processor
+        self._collect_and_sync_scalers(successful_symbols)
         
         # 返回模型字典和成功训练的股票列表
         return self.multi_horizon_model.models, successful_symbols
@@ -476,4 +482,19 @@ class ModelTrainer:
             'final_loss': final_loss,
             'training_samples': training_samples,
             'feature_dim': feature_dim
-        } 
+        }
+    
+    def _collect_and_sync_scalers(self, successful_symbols):
+        """收集训练过程中的scalers并同步到算法"""
+        # 从data_processor收集scalers
+        self.scalers = {}
+        for symbol in successful_symbols:
+            if symbol in self.data_processor.scalers:
+                self.scalers[symbol] = self.data_processor.scalers[symbol]
+        
+        # 同步到算法的data_processor
+        self.algorithm.data_processor.scalers.update(self.scalers)
+        
+        # 记录日志
+        self.algorithm.Debug(f"Collected {len(self.scalers)} scalers for symbols: {list(self.scalers.keys())}")
+        self.algorithm.Debug(f"Algorithm data_processor now has {len(self.algorithm.data_processor.scalers)} scalers") 
