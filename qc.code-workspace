@@ -1,0 +1,52 @@
+{
+    "folders": [
+        {
+            "name": "Multi Equity LSTM",
+            "path": "."
+        }
+    ],
+    "settings": {
+        "python.defaultInterpreterPath": "/usr/bin/python3",
+        "python.linting.enabled": true,
+        "python.linting.pylintEnabled": false,
+        "python.linting.flake8Enabled": true,
+        "python.formatting.provider": "black",
+        "files.exclude": {
+            "**/__pycache__": true,
+            "**/*.pyc": true,
+            "**/.DS_Store": true
+        },
+        "python.analysis.extraPaths": [
+            "."
+        ],
+        "files.autoSave": "afterDelay",
+        "files.readonlyInclude": {
+            "**/*.py": false,
+            "**/*.cs": false,
+            "**/*.ipynb": false,
+            "/Users/zhangmuheng/LeanWorkspace/Multi Equity LSTM/**/*.py": false,
+            "/Users/zhangmuheng/LeanWorkspace/Multi Equity LSTM/**/*.cs": false,
+            "/Users/zhangmuheng/LeanWorkspace/Multi Equity LSTM/**/*.ipynb": false
+        }
+    },
+    "extensions": {
+        "recommendations": [
+            "ms-python.python",
+            "ms-python.flake8",
+            "ms-python.black-formatter"
+        ]
+    },
+    "launch": {
+        "version": "0.2.0",
+        "configurations": [
+            {
+                "name": "Python: Current File",
+                "type": "python",
+                "request": "launch",
+                "program": "${file}",
+                "console": "integratedTerminal",
+                "cwd": "${workspaceFolder}"
+            }
+        ]
+    }
+}

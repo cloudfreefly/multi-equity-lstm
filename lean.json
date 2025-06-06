@@ -1,0 +1,35 @@
+{
+    "description": "Multi-Horizon LSTM Trading Algorithm with CNN+LSTM+Attention Architecture",
+    "parameters": {
+        "start_date": "2020-01-01",
+        "end_date": "2024-01-01",
+        "cash": 100000,
+        "symbols": ["AAPL", "MSFT", "GOOGL", "TSLA", "NVDA", "META", "AMZN", "SPY"],
+        "rebalance_frequency": "monthly",
+        "training_window": 126,
+        "lookback_days": 60
+    },
+    "environments": {
+        "backtesting": {
+            "live-mode": false,
+            "data-folder": "./data",
+            "results-destination-folder": "./results"
+        },
+        "live-paper": {
+            "live-mode": true,
+            "brokerage": "QuantConnectBrokerage",
+            "data-queue-handler": "QuantConnectBrokerage"
+        },
+        "live-ib": {
+            "live-mode": true,
+            "brokerage": "InteractiveBrokersBrokerage",
+            "data-queue-handler": "InteractiveBrokersBrokerage"
+        }
+    },
+    "algorithm-language": "Python",
+    "algorithm-location": "main.py",
+    "debugging": {
+        "enabled": true,
+        "port": 5678
+    }
+} 
